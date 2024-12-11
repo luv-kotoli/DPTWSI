@@ -1,10 +1,6 @@
 ﻿using OpenCvSharp;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace DPTWSITest
 {
@@ -46,46 +42,77 @@ namespace DPTWSITest
             CurrOffset = DPTWSIFileConsts.DataStartOffset;
         }
 
-        public void WriteImage(sbyte Layer, uint X, uint Y, byte Z, byte[] ImageData)
+        public void WriteImageMultiLayer(ConcurrentDictionary<int, byte[]> jpegDataDict, uint X, uint Y, byte Z)
         {
-            // jpeg 压缩图像, 并写入图像文件
-            //byte[] jpegData = Image.ImEncode(".jpg");
-            int length = ImageData.Length;
-            // jump to image data write position
-            Stream.Seek(CurrOffset, SeekOrigin.Begin);
-            Writer.Write(ImageData);
-
-
-            // 创建ImageInfo对象
-            ImagePosInfo posInfo = new ImagePosInfo()
+            // 遍历 jpegDataDict 中的每个元素
+            foreach (var kvp in jpegDataDict)
             {
-                X = X,
-                Y = Y,
-                Z = Z,
-                Layer = Layer
-            };
-            ImageDataInfo dataInfo = new ImageDataInfo() { Length = length, Offset = CurrOffset };
-            //ImageInfos.TryUpdate(posInfo, dataInfo, new ImageDataInfo());
-            ImageInfos.TryAdd(posInfo,dataInfo);
-            CurrOffset += length;
+                int layer = kvp.Key;
+                byte[] imageData = kvp.Value;
+                int length = imageData.Length;
+                Stream.Seek(CurrOffset, SeekOrigin.Begin);
+                Writer.Write(imageData);
+
+                // 创建ImageInfo对象
+                ImagePosInfo posInfo = new ImagePosInfo()
+                {
+                    X = X,
+                    Y = Y,
+                    Z = Z,
+                    Layer = (sbyte)layer
+                };
+                ImageDataInfo dataInfo = new ImageDataInfo() { Length = length, Offset = CurrOffset };
+                //ImageInfos.TryUpdate(posInfo, dataInfo, new ImageDataInfo());
+                ImageInfos.TryAdd(posInfo,dataInfo);
+                CurrOffset += length;
+            }
+        }
+
+        public void WriteImage(uint X, uint Y, byte Z, Mat imageMat)
+        {
+            ConcurrentDictionary<int, byte[]> jpegDataDict = JpegCompression(imageMat);
+            // 调用WriteImageMultiLayer方法,将jpeg多层数据写入文件
+            WriteImageMultiLayer(jpegDataDict, X, Y, Z);
         }
 
         public ConcurrentDictionary<int, byte[]> JpegCompression(Mat image)
         {
             ConcurrentDictionary<int, byte[]> jpegDataDict = new ConcurrentDictionary<int, byte[]>();
-            Parallel.For(0, 3, layer =>
+            List<Mat> resizedMats = new List<Mat>();
+            // 使用多线程进行 Resize 操作
+            var resizeTasks = new List<Task<Mat>>();
+            for (int layer = 0; layer < 3; layer++)
             {
-                Mat LayerMat;
-                if (layer == 0)
+                int layerCopy = layer;
+                resizeTasks.Add(Task.Run(() =>
                 {
-                    LayerMat = image.Clone();
+                    Mat LayerMat;
+                    if (layerCopy == 0)
+                    {
+                        LayerMat = image.Clone();
+                    }
+                    else
+                    {
+                        LayerMat = image.Resize(new Size(0, 0), fx: 1 / Math.Pow(4, layerCopy), fy: 1 / Math.Pow(4, layerCopy));
+                    }
+                    return LayerMat;
+                }));
+            }
+            Task.WhenAll(resizeTasks).ContinueWith(resizeTasks => {
+                foreach (var taskResult in resizeTasks.Result){
+                    resizedMats.Add(taskResult);    
                 }
-                else
-                {
-                    LayerMat = image.Resize(new Size(0, 0), fx: 1 / Math.Pow(4, layer), fy: 1 / Math.Pow(4, layer));
+            }).Wait();
+
+            // 在线程内进行单线程JPEG压缩
+            Task.Run( () => {
+                for (int layer = 0; layer < resizedMats.Count; layer++){
+                    Mat LayerMat = resizedMats[layer];
+                    using (LayerMat){
+                        byte[] layerData = LayerMat.ImEncode(".jpg");
+                        jpegDataDict[layer] = layerData;
+                    }
                 }
-                byte[] layerData = LayerMat.ImEncode(".jpg");
-                jpegDataDict[layer] = layerData;
             });
             return jpegDataDict;
         }
