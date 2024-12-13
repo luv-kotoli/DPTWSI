@@ -46,14 +46,16 @@ namespace DPTWSITest
 
         public static void Read()
         {
-            string filePath = "D:/yuxx/dpt_write_test/test2.dpt";
+            string filePath = "D:/yuxx/dpt_read_test/test4.dpt";
             DPTWSIFileDecoder dptFileDecoder = new DPTWSIFileDecoder(filePath);
-            byte[] result = dptFileDecoder.ReadRegion(30000, 30000, 10000, 10000, 0);
-
+            int readSizeX = 20000;
+            int readSizeY = 20000;
+            byte[] result = dptFileDecoder.ReadRegion(20000/4, 20000/4, 2000,2000, 1);
+            //byte[] result = dptFileDecoder.ReadRegion(0, 0, readSizeX / 16, readSizeY / 16, 2);
             //byte[] result = dptFileDecoder.GetTile(0, 0, 4096, 0);
-            Mat colorImage = new Mat(new Size(10000,10000), MatType.CV_8UC3);
-            Marshal.Copy(result, 0, colorImage.Data, result.Length);
-            colorImage.SaveImage("D:/yuxx/dpt_write_test/test_read.jpg");
+            Mat colorImage = new Mat(new Size(readSizeX/16, readSizeY/16), MatType.CV_8UC3, new Scalar(251, 251, 251));
+            //Marshal.Copy(result, 0, colorImage.Data, result.Length);
+            //colorImage.SaveImage("D:/yuxx/dpt_read_test/test_read.jpg");
         }
 
         public static void Main(string[] args)

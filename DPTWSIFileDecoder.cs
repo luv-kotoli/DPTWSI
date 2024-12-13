@@ -79,10 +79,12 @@ namespace DPTWSITest
             int realRegionEndY = Math.Min(scaledWSIHeight - 1, scaledY + height - 1);
 
             // 当前尺度下单张图的实际大小
-            int tileSizeX = (int)((DptFile.SingleImageWidth - DptFile.Overlap) * scale);
-            int tileSizeY = (int)((DptFile.SingleImageHeight - DptFile.Overlap) * scale);
+            int originTileSizeX = (int)(DptFile.SingleImageWidth - DptFile.Overlap);
+            int originTileSizeY = (int)(DptFile.SingleImageHeight - DptFile.Overlap);
+            int tileSizeX = (int)(originTileSizeX * scale);
+            int tileSizeY = (int)(originTileSizeY * scale);
 
-            List<ImagePosInfo> posInfos = new List<ImagePosInfo>();
+            ConcurrentBag<ImagePosInfo> posInfos = new ConcurrentBag<ImagePosInfo>();
             // 计算起终点所处的小图序号
             int left = realRegionStartX / tileSizeX;
             int right = realRegionEndX / tileSizeX;
@@ -96,8 +98,8 @@ namespace DPTWSITest
                     var posInfo = new ImagePosInfo()
                     {
                         Layer = (sbyte)layer,
-                        X = (uint)(imageX * tileSizeX / scale),
-                        Y = (uint)(imageY * tileSizeY / scale),
+                        X = (uint)(imageX * originTileSizeX),
+                        Y = (uint)(imageY * originTileSizeY),
                         Z = 0
                     };
                     posInfos.Add(posInfo);
@@ -106,25 +108,39 @@ namespace DPTWSITest
             
 
             ConcurrentDictionary<ImagePosInfo, Mat> tiles = new ConcurrentDictionary<ImagePosInfo,Mat>();
-
-            Parallel.ForEach(posInfos, (posInfo) =>
+            SemaphoreSlim semaphoreSlim = new SemaphoreSlim(8);
+            List<Task> tasks = new List<Task>();
+            int infosCount = posInfos.Count;
+            for (int infoIdx = 0; infoIdx < infosCount; infoIdx++)
             {
-                try
+                int currInfoIdx = infoIdx;
+                posInfos.TryTake(out ImagePosInfo posInfo);
+                Task task = Task.Run(() =>
                 {
-                    ImageInfos.TryGetValue(posInfo, out var dataInfo);
-                    // TODO: 多线程读取jpeg数据
-                    Stream readStream = new FileStream(DptFile.FileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    Mat tile = ReadSingleImageData(posInfo, readStream);
-                    // TODO: 同时多线程解码jpeg数据
-                    tiles[posInfo] = tile;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    tiles[posInfo] = new Mat();
-                }
-            });
+                    semaphoreSlim.Wait();
+                    try
+                    {
+                        ImageInfos.TryGetValue(posInfo, out var dataInfo);
+                        // TODO: 多线程读取jpeg数据
+                        Stream readStream = new FileStream(DptFile.FileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        Mat tile = ReadSingleImageData(posInfo, readStream);
+                        tile = tile.CvtColor(ColorConversionCodes.RGB2BGR);
+                        tile.SaveImage($"D:/yuxx/dpt_read_test/tiles/{posInfo.Y}-{posInfo.X}.jpg");
+                        // TODO: 同时多线程解码jpeg数据
+                        tiles[posInfo] = tile;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        tiles[posInfo] = new Mat();
+                    }
+                    finally { semaphoreSlim.Release(); }
+                });
+                tasks.Add(task);
+            }
 
+            Task.WaitAll(tasks.ToArray());
+            
             // 将区域融合为一个Mat
             using Mat regionMat = new Mat(new Size(realRegionEndX - x + 1, realRegionEndY -y +1),MatType.CV_8UC3);
             using Mat failedImgMat = new Mat(new Size((int)(DptFile.SingleImageWidth*scale),(int)(DptFile.SingleImageHeight*scale)),
@@ -135,7 +151,7 @@ namespace DPTWSITest
                 // 读取jpeg数据
                 using Mat singleImgMat = jpegImg.Value.Size() == new Size(0,0) ? failedImgMat : jpegImg.Value.Resize(failedImgMat.Size());
                 Cv2.Resize(singleImgMat, singleImgMat, new Size(DptFile.SingleImageWidth, DptFile.SingleImageHeight));
-                Cv2.CvtColor(singleImgMat, singleImgMat, ColorConversionCodes.RGB2BGR);
+                //Cv2.CvtColor(singleImgMat, singleImgMat, ColorConversionCodes.RGB2BGR);
 
                 // 测试: 保存所有tile
                 singleImgMat.SaveImage($"D:/yuxx/dpt_write_test/{jpegImg.Key.X}-{jpegImg.Key.Y}.jpg");
