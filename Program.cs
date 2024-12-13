@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using OpenCvSharp;
 
 namespace DPTWSITest
@@ -13,24 +14,31 @@ namespace DPTWSITest
     {
         public static void Write()
         {
-            DPTWSIFileEncoder dptFile = new DPTWSIFileEncoder(1, 1, 5000, 5000, 5000, 5000, 0.173f, 100);
+            int singleImgWidth = 4992, singleImgHeight = 4992;
+            int width = 50000, height = 50000;
+            int overlap = 96;
+            DPTWSIFileEncoder dptFile = new DPTWSIFileEncoder(121, 1, (short)singleImgWidth, (short)singleImgHeight, 
+                                                              (uint)width, (uint)height, 0.173f, (uint)overlap);
             Mat Image = Cv2.ImRead("D:/yuxx/dpt_write_test/patch_test.jpg");
-            Image = Image.Resize(new Size(5000, 5000));
+            Image = Image.Resize(new Size(4992,4992));
             //byte[] imageData = Image.ImEncode(".jpg");
-            //for (uint x = 0; x< 5000*20; x += 5000)
-            //{
-            //    for (uint  y = 0; y< 5000 * 20; y += 5000)
-            //    {
-            //        //dptFile.WriteImage(0, x, y, 0, imageData);
-
-            //    }
-            //}
-            uint x = 0, y = 0;
-            var jpegDatas = dptFile.JpegCompression(Image);
-            for (sbyte Layer = 0; Layer < 3; Layer++)
+            for (int x = 0; x< 11; x ++)
             {
-                dptFile.WriteImage(Layer, x, y, 0, jpegDatas[Layer]);
+               for (int y = 0; y< 11; y ++)
+               {
+                   int posX = x * (singleImgWidth - overlap);
+                   int posY = y * (singleImgHeight - overlap);
+                    Console.WriteLine($"Writing pos:{posX}-{posY}");
+                   dptFile.WriteImage((uint)posX,(uint)posY,0,Image);
+                   //dptFile.WriteImage(0, x, y, 0, imageData);
+
+               }
             }
+            // uint x = 0, y = 0;
+            // var jpegDatas = dptFile.JpegCompression(Image);
+            
+            // dptFile.WriteImage(x, y, 0, Image);
+            
 
             dptFile.SaveWSIFile("D:/yuxx/dpt_write_test/test.dpt");
 
@@ -38,12 +46,19 @@ namespace DPTWSITest
 
         public static void Read()
         {
-            string filePath = "D:/yuxx/dpt_write_test/test.dpt";
+            string filePath = "D:/yuxx/dpt_write_test/test2.dpt";
             DPTWSIFileDecoder dptFileDecoder = new DPTWSIFileDecoder(filePath);
+            byte[] result = dptFileDecoder.ReadRegion(30000, 30000, 10000, 10000, 0);
+
+            //byte[] result = dptFileDecoder.GetTile(0, 0, 4096, 0);
+            Mat colorImage = new Mat(new Size(10000,10000), MatType.CV_8UC3);
+            Marshal.Copy(result, 0, colorImage.Data, result.Length);
+            colorImage.SaveImage("D:/yuxx/dpt_write_test/test_read.jpg");
         }
 
         public static void Main(string[] args)
         {
+            //Write();
             Read();
         }
     }

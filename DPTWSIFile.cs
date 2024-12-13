@@ -14,18 +14,59 @@ namespace DPTWSITest
         public const int ImageInfoStartOffset = HeaderSize;
         public const int DataStartOffset = 6187500 + HeaderSize;
     }
-    public class ImagePosInfo
+    public class ImagePosInfo : IEquatable<ImagePosInfo>
     {
         public sbyte Layer { get; set; }
         public uint X { get; set; }
         public uint Y { get; set; }
         public byte Z { get; set; }
+
+        public override string ToString()
+        {
+            return $"{X}-{Y}-{Z}-{Layer}";
+        }
+
+        public bool Equals(ImagePosInfo other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+            return Layer == other.Layer && X == other.X && Y == other.Y && Z == other.Z;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            return Equals((ImagePosInfo)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + Layer.GetHashCode();
+                hash = hash * 23 + X.GetHashCode();
+                hash = hash * 23 + Y.GetHashCode();
+                hash = hash * 23 + Z.GetHashCode();
+                return hash;
+            }
+        }
     }
 
     public class ImageDataInfo
     {
         public int Length { get; set; } = 0;
         public long Offset { get; set; } = 0;
+
+        public override string ToString()
+        {
+            return $"{Length}-{Offset}";
+        }
     }
     public class DPTWSIFile
     {

@@ -1,6 +1,6 @@
 ﻿using OpenCvSharp;
 using System.Collections.Concurrent;
-
+using System.Diagnostics;
 
 namespace DPTWSITest
 {
@@ -81,6 +81,8 @@ namespace DPTWSITest
             List<Mat> resizedMats = new List<Mat>();
             // 使用多线程进行 Resize 操作
             var resizeTasks = new List<Task<Mat>>();
+
+            Stopwatch sw = Stopwatch.StartNew();
             for (int layer = 0; layer < 3; layer++)
             {
                 int layerCopy = layer;
@@ -103,7 +105,10 @@ namespace DPTWSITest
                     resizedMats.Add(taskResult);    
                 }
             }).Wait();
+            sw.Stop();
+            Console.WriteLine($"缩放耗时：{sw.ElapsedMilliseconds}");
 
+            sw.Restart();
             // 在线程内进行单线程JPEG压缩
             Task.Run( () => {
                 for (int layer = 0; layer < resizedMats.Count; layer++){
@@ -113,7 +118,10 @@ namespace DPTWSITest
                         jpegDataDict[layer] = layerData;
                     }
                 }
-            });
+            }).Wait();
+            sw.Stop();
+            Console.WriteLine($"JPEG压缩耗时：{sw.ElapsedMilliseconds}");
+            
             return jpegDataDict;
         }
 
