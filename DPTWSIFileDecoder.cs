@@ -95,8 +95,10 @@ namespace DPTWSITest
             int realRegionEndY = Math.Min(scaledWSIHeight - 1, scaledY + height - 1);
 
             // 当前尺度下单张图的实际大小
-            int tileSizeX = (int)((DptFile.SingleImageWidth - DptFile.Overlap) * scale);
-            int tileSizeY = (int)((DptFile.SingleImageHeight - DptFile.Overlap) * scale);
+            int originTileSizeX = (int)(DptFile.SingleImageWidth - DptFile.Overlap);
+            int originTileSizeY = (int)(DptFile.SingleImageHeight - DptFile.Overlap);
+            int tileSizeX = (int)(originTileSizeX * scale);
+            int tileSizeY = (int)(originTileSizeY * scale);
 
             ConcurrentBag<ImagePosInfo> posInfos = new ConcurrentBag<ImagePosInfo>();
             // 计算起终点所处的小图序号
