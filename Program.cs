@@ -47,8 +47,8 @@ namespace DPTWSITest
         public static void Read()
         {
             string filePath = "D:/yuxx/dpt_write_test/test4.dpt";
-            int readSizeX = 4000;
-            int readSizeY = 4000;
+            int readSizeX = 15000;
+            int readSizeY = 15000;
             DPTWSIFileDecoder dptFileDecoder = new DPTWSIFileDecoder(filePath);
             int wsiWidth = (int)dptFileDecoder.DptFile.Width;
             int wsiHeight = (int)dptFileDecoder.DptFile.Height;

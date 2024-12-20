@@ -184,7 +184,7 @@ namespace DPTWSITest
                 int startY = Math.Max(scaledY,imgY);
                 int endX = Math.Min(realRegionEndX, imgX + imgWidth-1); 
                 int endY = Math.Min(realRegionEndY, imgY + imgHeight-1);
-                Console.WriteLine($"regionMat Size:{regionMat.Size()}, End Position:{endX - scaledX}-{endY - scaledY}");
+                //Console.WriteLine($"regionMat Size:{regionMat.Size()}, End Position:{endX - scaledX}-{endY - scaledY}");
                 using Mat roi = singleImgMat.SubMat(startY - imgY, endY - imgY, startX - imgX, endX - imgX);
                 using Mat subRegion = regionMat.SubMat(startY - scaledY, endY - scaledY, startX - scaledX, endX - scaledX);
                 //roi.CopyTo(subRegion);
@@ -195,7 +195,7 @@ namespace DPTWSITest
             }
 
             // TODO: 过大数组会导致内存溢出,需要优化
-            regionMat.SaveImage("D:/yuxx/test_dpt_read.jpg");
+            //regionMat.SaveImage("D:/yuxx/test_dpt_read.jpg");
             byte[] result = new byte[regionMat.Width * regionMat.Height * 3];
             Marshal.Copy(regionMat.Data, result, 0, result.Length);
             realWidth = regionMat.Width;
@@ -203,11 +203,11 @@ namespace DPTWSITest
             return result;
         }
 
-        public byte[] GetTile(int row, int col, int tileSize, int layer, out int realWidth, out int realHeight){
+        public byte[] GetTile(int row, int col, int z, int tileSize, int layer, out int realWidth, out int realHeight){
             int btmLayerPosX = row*tileSize * (int)Math.Pow(4,layer);
             int btmLayerPosY = col*tileSize * (int)Math.Pow(4,layer);
             
-            byte[] tileBytes = ReadRegion(btmLayerPosX, btmLayerPosY, tileSize, tileSize, layer, out realWidth, out realHeight);
+            byte[] tileBytes = ReadRegion(btmLayerPosX, btmLayerPosY, tileSize, tileSize, layer, out realWidth, out realHeight, z:z);
             return tileBytes;
         }
         
