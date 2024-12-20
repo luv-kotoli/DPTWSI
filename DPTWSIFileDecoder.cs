@@ -74,10 +74,6 @@ namespace DPTWSITest
                 throw new ArgumentException("Layer 只能为0,1,2层");
             }
 
-            if (z+1 >= DptFile.ZStacks)
-            {
-                throw new ArgumentException($"非法访问:当前文件只扫描了{DptFile.ZStacks}层，正在访问第{z}层");
-            }
             double scale = 1 / Math.Pow(4, layer);
 
             // 按照缩放比例将x,y 转换为当前层的坐标
