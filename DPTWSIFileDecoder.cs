@@ -74,7 +74,7 @@ namespace DPTWSITest
                 throw new ArgumentException("Layer 只能为0,1,2层");
             }
 
-            if (z > DptFile.ZStacks)
+            if (z+1 >= DptFile.ZStacks)
             {
                 throw new ArgumentException($"非法访问:当前文件只扫描了{DptFile.ZStacks}层，正在访问第{z}层");
             }

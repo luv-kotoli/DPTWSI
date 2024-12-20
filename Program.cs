@@ -56,7 +56,7 @@ namespace DPTWSITest
 
             Console.WriteLine($"File wsiWidth:{wsiWidth}, height:{wsiHeight} || Real wsiWidth:{dptFileDecoder.WSIWidth}, height:{dptFileDecoder.WSIHeight}");
 
-            byte[] result = dptFileDecoder.ReadRegion(10000, 10000, readSizeX, readSizeY, 0, out int realWidth, out int realHeight);
+            byte[] result = dptFileDecoder.ReadRegion(10000, 10000, readSizeX, readSizeY, 1, out int realWidth, out int realHeight);
 
             //byte[] result = dptFileDecoder.GetTile(0, 0, 4096, 0);
             Mat colorImage = new Mat(new Size(realWidth, realHeight), MatType.CV_8UC3);
