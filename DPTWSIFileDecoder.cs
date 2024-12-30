@@ -162,11 +162,11 @@ namespace DPTWSITest
                 Cv2.Resize(singleImgMat, singleImgMat, new Size(DptFile.SingleImageWidth*scale, DptFile.SingleImageHeight*scale));
                 Cv2.CvtColor(singleImgMat, singleImgMat, ColorConversionCodes.RGB2BGR);
 
-                if (layer == 0)
-                {
-                    DPTWSIUtils.WeightedFusionSingle(singleImgMat, (int)DptFile.Overlap, directions);
-                }
-                
+                //if (layer == 0)
+                //{
+                    DPTWSIUtils.WeightedFusionSingle(singleImgMat, (int)(DptFile.Overlap / Math.Pow(4, jpegImg.Key.Layer)), directions, kValue:0.15* Math.Pow(4, jpegImg.Key.Layer));
+                //}
+
                 // 测试: 保存所有tile
                 //singleImgMat.SaveImage($"D:/yuxx/dpt_write_test/{jpegImg.Key.X}-{jpegImg.Key.Y}.jpg");
 
@@ -186,8 +186,12 @@ namespace DPTWSITest
                 using Mat roi = singleImgMat.SubMat(startY - imgY, endY - imgY, startX - imgX, endX - imgX);
                 using Mat subRegion = regionMat.SubMat(startY - scaledY, endY - scaledY, startX - scaledX, endX - scaledX);
                 //roi.CopyTo(subRegion);
-                if (layer == 0) Cv2.Add(roi, subRegion, subRegion);
-                else roi.CopyTo(subRegion);
+
+                // 用于融合拼缝
+                /*if (layer == 0) */
+                Cv2.Add(roi, subRegion, subRegion);
+                //else roi.CopyTo(subRegion);
+
                 //regionMat.SaveImage("D:/yuxx/test_dpt_read2.jpg");
                 idx++;
             }

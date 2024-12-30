@@ -18,7 +18,14 @@ namespace DPTWSITest
     public class DPTWSIUtils
     {
         
-        public static void WeightedFusionSingle(Mat mat, int overlap, List<FusionDirection> fusionDirections)
+        /// <summary>
+        /// 加权融合拼缝
+        /// </summary>
+        /// <param name="mat"></param>
+        /// <param name="overlap"></param>
+        /// <param name="fusionDirections"></param>
+        /// <param name="kValue"></param>
+        public static void WeightedFusionSingle(Mat mat, int overlap, List<FusionDirection> fusionDirections, double kValue = 0.15)
         {
             //foreach (FusionDirection direction in fusionDirections)
             Parallel.ForEach(fusionDirections, direction =>
@@ -54,7 +61,7 @@ namespace DPTWSITest
                         {
                             var pixsubMat = subMat.At<Vec3b>(y, x);
 
-                            float weightsubMat = Sigmoid(y - subMat.Height / 2);
+                            float weightsubMat = Sigmoid(y - subMat.Height / 2, kValue);
 
                             Vec3b fusedPixel = new Vec3b();
                             fusedPixel.Item0 = (byte)(pixsubMat.Item0 * weightsubMat);
@@ -75,7 +82,7 @@ namespace DPTWSITest
                         {
                             var pixsubMat = subMat.At<Vec3b>(y, x);
 
-                            float weightsubMat = 1 - Sigmoid(y - subMat.Height / 2);
+                            float weightsubMat = 1 - Sigmoid(y - subMat.Height / 2, kValue);
 
                             Vec3b fusedPixel = new Vec3b();
                             fusedPixel.Item0 = (byte)(pixsubMat.Item0 * weightsubMat);
@@ -96,7 +103,7 @@ namespace DPTWSITest
                         {
                             var pixsubMat = subMat.At<Vec3b>(y, x);
 
-                            float weightsubMat = Sigmoid(x - subMat.Width / 2);
+                            float weightsubMat = Sigmoid(x - subMat.Width / 2, kValue);
 
                             Vec3b fusedPixel = new Vec3b();
                             fusedPixel.Item0 = (byte)(pixsubMat.Item0 * weightsubMat);
@@ -117,7 +124,7 @@ namespace DPTWSITest
                         {
                             var pixsubMat = subMat.At<Vec3b>(y, x);
 
-                            float weightsubMat = 1 - Sigmoid(x - subMat.Width / 2);
+                            float weightsubMat = 1 - Sigmoid(x - subMat.Width / 2, kValue);
 
                             Vec3b fusedPixel = new Vec3b();
                             fusedPixel.Item0 = (byte)(pixsubMat.Item0 * weightsubMat);
@@ -132,7 +139,7 @@ namespace DPTWSITest
             });
             //Cv2.Rectangle(result, new Rect(0, 0, result.Width, result.Height), new Scalar(0, 255, 0), thickness: 2);
         }
-        public static float Sigmoid(float value, double kValue = 0.3)
+        public static float Sigmoid(float value, double kValue = 0.15)
         {
             return 1.0f / (1.0f + (float)Math.Exp(-kValue * value));
         }
